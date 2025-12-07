@@ -5,7 +5,7 @@ let HOST = '127.0.0.1';
 
 const mongoose = require ("mongoose");
 const username = "iamagduri_db_user";
-const password = "8KM9sy8tWg4NYiq2";
+const password = "Your_Password";
 const dbname = "mapd713db";
 
 //mongodb+srv://iamagduri_db_user:8KM9sy8tWg4NYiq2@cluster0.msyoabw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
@@ -357,6 +357,7 @@ server.get('/patients/critical', function (req, res, next) { // <-- FIX IS HERE:
             return next(new errors.InternalServerError("Could not fetch critical patients due to a database error."));
         });
 });
+
 
 
 
