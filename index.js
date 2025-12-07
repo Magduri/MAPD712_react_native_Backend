@@ -5,12 +5,8 @@ let HOST = '127.0.0.1';
 
 const mongoose = require ("mongoose");
 const username = "iamagduri_db_user";
-const password = "Your_Password";
+const password = "<Your_Password>";
 const dbname = "mapd713db";
-
-
-// Atlas MongoDb connection string format
-//mongodb+srv://<username>:<password>@cluster0.k7qyrcg.mongodb.net/<dbname(optional)>?retryWrites=true&w=majority
 
 let uristring = 'mongodb+srv://'+username+':'+password+'@cluster0.msyoabw.mongodb.net/'+
  dbname+'?retryWrites=true&w=majority';
@@ -356,6 +352,7 @@ server.get('/patients/critical', function (req, res, next) { // <-- FIX IS HERE:
             return next(new errors.InternalServerError("Could not fetch critical patients due to a database error."));
         });
 });
+
 
 
 
