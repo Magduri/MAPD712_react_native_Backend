@@ -8,7 +8,7 @@ const username = "iamagduri_db_user";
 const password = "<Your_Password>";
 const dbname = "mapd713db";
 
-let uristring = 'mongodb+srv://'+username+':'+password+'@cluster0.msyoabw.mongodb.net/'+
+let uristring = 'mongodb+srv://iamagduri_db_user:8KM9sy8tWg4NYiq2@cluster0.msyoabw.mongodb.net/'+
  dbname+'?retryWrites=true&w=majority';
 
 // Makes db connection asynchronously
@@ -165,7 +165,16 @@ server.get('/patients', function (req, res, next) {
 
   PatientsModel.find({})
     .then((users)=>{
-        res.send(users);
+      let cleanUsers = users.map(user => {
+            let cleanUser = user.toObject(); // Convert Mongoose document to normal JSON
+            
+            // If there is a DOB and it has the timestamp 'T', chop it off!
+            if (cleanUser.dob && cleanUser.dob.includes('T')) {
+                cleanUser.dob = cleanUser.dob.split('T')[0];
+            }
+            return cleanUser;
+        });
+        res.send(cleanUsers);
         return next();
     })
     .catch((error)=>{
@@ -181,7 +190,11 @@ server.get('/patients/:id', function (req, res, next) {
   .then((user)=>{
     console.log("found patients: " + user);
     if (user) {
-      res.send(user)
+      let cleanUser = user.toObject();
+      if (cleanUser.dob && cleanUser.dob.includes('T')) {
+        cleanUser.dob = cleanUser.dob.split('T')[0];
+      }
+      res.send(cleanUser);
     } else {
       res.send(404)
     }
@@ -229,6 +242,24 @@ server.post('/clinicaldata', function (req, res, next) {
   } else if (req.body.value === undefined ) {
     return next(new errors.BadRequestError('value must be supplied'))
   } 
+  const incomingType = req.body.type;
+  const incomingValue = req.body.value;
+
+  if (incomingType === 'Blood Pressure') {
+    const parts = incomingValue.split('/');
+    if (parts.length !== 2) return next(new errors.BadRequestError('Blood pressure must be in format sys/dia'));
+    
+    const sys = Number(parts[0]);
+    const dia = Number(parts[1]);
+    
+    if (isNaN(sys) || isNaN(dia)) return next(new errors.BadRequestError('Blood pressure values must be numbers'));
+    if (sys < 0 || dia < 0) return next(new errors.BadRequestError('Blood pressure cannot be negative'));
+  } else {
+    // Check all other types to ensure they are positive numbers
+    const numValue = Number(incomingValue);
+    if (isNaN(numValue)) return next(new errors.BadRequestError('Value must be a valid number'));
+    if (numValue < 0) return next(new errors.BadRequestError('Value cannot be negative'));
+  }
   let isCritical = isReadingCritical(req.body.type, req.body.value);
 /////////
 
@@ -291,6 +322,7 @@ else if (req.body.type === 'Heart Rate' && req.body.value) {
 server.get('/clinicaldata/patients/:patientId', function (req, res, next) {
   console.log(`GET /clinicaldata/patients/:patientId params=>${JSON.stringify(req.params)}`);  
   ClinicalDataModel.find({ patientId: req.params.patientId })
+  .sort({ measuredDateTime: -1 })
     .then((data)=>{
         res.send(data); 
         return next();
@@ -336,7 +368,7 @@ async function getCriticalPatients(PatientModel, ClinicalDataModel) {
     }
 }
 // GET Endpoint for Critical Patients (Matching your callback style)
-server.get('/patients/critical', function (req, res, next) { // <-- FIX IS HERE: NOT async
+server.get('/patients/critical', function (req, res, next) { 
     console.log("GET /patients/critical");
 
     // Call the async helper function and handle the promise using .then/.catch
@@ -351,6 +383,30 @@ server.get('/patients/critical', function (req, res, next) { // <-- FIX IS HERE:
             // Error: Pass the error to the next handler
             return next(new errors.InternalServerError("Could not fetch critical patients due to a database error."));
         });
+});
+
+// --- NEW LOGIN ENDPOINT ---
+server.post('/login', function (req, res, next) {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return next(new errors.BadRequestError('Email and password must be supplied'));
+  }
+
+  if (email === 'iffat@wecare.com' && password === '123456') {
+    // Send back success AND the dynamic user name to show in the app header!
+    res.send(200, { 
+      success: true, 
+      user: {
+        name: 'Iffat',
+        email: email
+      }
+    });
+    return next();
+  } else {
+    res.send(401, { success: false, message: 'Invalid email or password' });
+    return next();
+  }
 });
 
 
